@@ -1,0 +1,67 @@
+import torch
+import torch.nn as nn
+
+class RNAModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.embedding = nn.Embedding(4, 64)
+        self.pos_embedding = nn.Embedding(1024, 64)
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=128,
+            nhead=8,
+            dim_feedforward=256,
+            dropout=0.1,
+            batch_first=True
+        )
+
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=3)
+
+        # pairwise blijft maar kleiner
+        self.pairwise = nn.Sequential(
+            nn.Linear(256, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
+
+        self.fc = nn.Sequential(
+            nn.Linear(128 + 1, 64),
+            nn.ReLU(),
+            nn.Linear(64, 3)
+        )
+
+    def forward(self, x):
+        B, L = x.shape
+
+        # 🔹 embeddings
+        emb = self.embedding(x)  # (B, L, 64)
+
+        pos = torch.arange(L, device=x.device).unsqueeze(0)
+        pos_emb = self.pos_embedding(pos)  # (1, L, 64)
+
+        x = torch.cat([emb, pos_emb.expand(B, -1, -1)], dim=-1)  # (B, L, 128)
+
+        # 🔥 transformer (HUGE upgrade)
+        x = self.transformer(x)
+
+        # 🔹 pairwise (lichter)
+        xi = x.unsqueeze(2)
+        xj = x.unsqueeze(1)
+
+        pair = torch.cat([xi.repeat(1,1,L,1), xj.repeat(1,L,1,1)], dim=-1)
+
+        pair_score = self.pairwise(pair).squeeze(-1)  # (B, L, L)
+
+        # 🔥 BETERE REDUCTIE (mean i.p.v. sum)
+        interaction = pair_score.mean(dim=-1, keepdim=True)  # (B, L, 1)
+
+        # 🔹 combine
+        x = torch.cat([x, interaction], dim=-1)
+
+        coords = self.fc(x)
+
+        # 🔥 stabilisatie
+        coords = torch.tanh(coords) * 5.0
+
+        return coords

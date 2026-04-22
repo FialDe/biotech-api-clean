@@ -1,0 +1,6 @@
+venv/
+*.csv
+*.pt
+*.pdf
+*.docx
+__pycache__/

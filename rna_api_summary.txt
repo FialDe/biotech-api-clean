@@ -1,0 +1,58 @@
+RNA Biotech API - Samenvatting
+
+Doel: Een simpele API bouwen die een RNA-sequence als input neemt en
+3D-coördinaten (dummy of model output) teruggeeft.
+
+Technologie: - Python - FastAPI (backend API) - Uvicorn (server) -
+Visual Studio Code
+
+Stap 1: Installatie pip install fastapi uvicorn
+
+Stap 2: Bestand maken Maak een bestand: main.py
+
+Stap 3: Basis code
+
+from fastapi import FastAPI from pydantic import BaseModel
+
+app = FastAPI()
+
+class SequenceInput(BaseModel): sequence: str
+
+def predict_structure(seq): coords = [] for i in range(len(seq)):
+coords.append([i * 1.0, i * 0.5, i * 0.2]) return coords
+
+@app.post(“/predict”) def predict(data: SequenceInput): seq =
+data.sequence.upper().strip()
+
+    if len(seq) == 0:
+        return {"error": "Sequence is empty"}
+
+    if len(seq) > 1000:
+        return {"error": "Sequence is too long (max 1000 nucleotides)"}
+
+    if not all(c in "AUGC" for c in seq):
+        return {"error": "Sequence must contain only A, U, G, C"}
+
+    coords = predict_structure(seq)
+
+    return {
+        "length": len(seq),
+        "coords": coords
+    }
+
+Stap 4: Run de server uvicorn main:app –reload
+
+Stap 5: Testen Ga naar: http://127.0.0.1:8000/docs
+
+Gebruik JSON input: { “sequence”: “AUGCUA” }
+
+Wat doet de API: - Ontvangt RNA sequence - Valideert input (lengte,
+tekens) - Genereert coords (dummy of model) - Stuurt JSON response terug
+
+Belangrijke validaties: - Geen lege sequence - Max lengte 1000 - Alleen
+A, U, G, C toegestaan
+
+Volgende stappen: - Echte RNA model koppelen - 3D visualisatie
+toevoegen - Integratie met website
+
+Status: Werkende MVP API ✔

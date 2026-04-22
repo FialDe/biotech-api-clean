@@ -1,0 +1,382 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+from fastapi.responses import HTMLResponse
+import torch
+from model import RNAModel
+
+# 🔹 Model laden
+model = RNAModel()
+model.load_state_dict(torch.load("rna_model.pt", map_location=torch.device("cpu")))
+model.eval()
+
+MAX_LEN = 1000
+
+# Maak app
+app = FastAPI()
+
+# Input structuur
+class SequenceInput(BaseModel):
+    sequence: str
+
+# Encoding
+def encode(seq):
+    mapping = {"A":0, "U":1, "G":2, "C":3}
+    return [mapping.get(s, 0) for s in seq]
+
+# 🔹 coords → PDB
+def coords_to_pdb(seq, coords):
+    pdb_lines = []
+    for i, (base, (x, y, z)) in enumerate(zip(seq, coords), start=1):
+        line = f"ATOM  {i:5d}  P   RNA A{i:4d}    {x:8.3f}{y:8.3f}{z:8.3f}"
+        pdb_lines.append(line)
+    return "\n".join(pdb_lines)
+
+# 🔹 Predict functie
+def predict_structure(seq):
+    x = encode(seq)
+    x = torch.tensor(x).unsqueeze(0)
+
+    with torch.no_grad():
+        coords = model(x)
+
+    return coords.squeeze(0).tolist()
+
+# 🔵 API root
+@app.get("/")
+def home():
+    return {
+        "name": "Biotech AI API",
+        "status": "running",
+        "docs": "/docs",
+        "predict": "/predict"
+    }
+
+# 🔹 Glossary
+GLOSSARY = {
+    "Sequence length": "Number of nucleotides in the RNA sequence.",
+    "Coordinates": "Predicted 3D positions of nucleotides."
+}
+
+@app.get("/glossary/{term}")
+def get_glossary(term: str):
+    return {
+        "term": term,
+        "definition": GLOSSARY.get(term, "No definition found.")
+    }
+
+# 🔹 Predict endpoint
+@app.post("/predict")
+def predict(data: SequenceInput):
+    seq = data.sequence.upper()
+
+    if not seq:
+        return {"error": "Sequence cannot be empty"}
+
+    if not all(c in "AUGC" for c in seq):
+        return {"error": "Sequence must contain only A, U, G, C"}
+    
+    if len(seq) > MAX_LEN:
+        return {"error": f"Sequence is too long (max {MAX_LEN})"}
+
+    coords = predict_structure(seq)
+    pdb = coords_to_pdb(seq, coords)
+
+    return {
+        "length": len(seq),
+        "coords": coords,
+        "pdb": pdb   # 🔥 BELANGRIJK
+    }
+
+# 🔹 Demo UI
+@app.get("/demo", response_class=HTMLResponse)
+def demo():
+    return """
+    <html>
+    <head>
+        <title>Biotech AI</title>
+
+        <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #0f172a;
+                color: white;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+            }
+
+            .container {
+                background: #1e293b;
+                padding: 30px;
+                border-radius: 12px;
+                width: 420px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                text-align: center;
+            }
+
+            input {
+                width: 100%;
+                padding: 12px;
+                border-radius: 8px;
+                border: none;
+                margin-bottom: 5px;
+                font-size: 16px;
+            }
+
+            .info {
+                font-size: 12px;
+                color: #94a3b8;
+                margin-bottom: 10px;
+                text-align: left;
+            }
+
+            .error {
+                color: #f87171;
+                font-size: 13px;
+                margin-bottom: 10px;
+                text-align: left;
+            }
+
+            button {
+                width: 100%;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                background: #3b82f6;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            button:disabled {
+                background: #64748b;
+            }
+
+            .spinner {
+                border: 4px solid #1e293b;
+                border-top: 4px solid #38bdf8;
+                border-radius: 50%;
+                width: 20px;
+                height: 20px;
+                animation: spin 1s linear infinite;
+                margin: 10px auto;
+                display: none;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            pre {
+                text-align: left;
+                background: #020617;
+                padding: 10px;
+                border-radius: 8px;
+                margin-top: 15px;
+                max-height: 200px;
+                overflow-y: auto;
+                font-size: 12px;
+            }
+
+            #viewer {
+                width: 100%;
+                height: 300px;
+                margin-top: 15px;
+                border-radius: 10px;
+            }
+
+            .clickable {
+                color: #38bdf8;
+                cursor: pointer;
+                text-decoration: underline;
+            }
+
+            #infoBox {
+                margin-top: 15px;
+                padding: 10px;
+                border-radius: 8px;
+                background: #020617;
+                font-size: 13px;
+                text-align: left;
+                display: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <h1>🧬 RNA Predictor</h1>
+
+            <input id="seq" placeholder="e.g. AUGCUAGCUAGC">
+
+            <div class="info" id="info">Length: 0</div>
+            <div class="error" id="error"></div>
+
+            <button id="btn" onclick="send()" disabled>Run Prediction</button>
+
+            <div class="spinner" id="spinner"></div>
+
+            <pre id="output"></pre>
+
+            <div id="viewer"></div>
+
+            <div id="infoBox"></div>
+        </div>
+
+        <script>
+        let input = document.getElementById("seq");
+        let error = document.getElementById("error");
+        let info = document.getElementById("info");
+        let btn = document.getElementById("btn");
+
+        input.addEventListener("input", () => {
+            let seq = input.value.toUpperCase().trim();
+
+            info.innerText = "Length: " + seq.length;
+
+            if (!seq) {
+                error.innerText = "Please enter a sequence";
+                btn.disabled = true;
+                return;
+            }
+
+            if (!/^[AUGC]+$/.test(seq)) {
+                error.innerText = "Only A, U, G, C allowed";
+                btn.disabled = true;
+                return;
+            }
+
+            if (seq.length > 1000) {
+                error.innerText = "Max length is 1000";
+                btn.disabled = true;
+                return;
+            }
+
+            error.innerText = "";
+            btn.disabled = false;
+        });
+
+        input.addEventListener("keypress", function(e) {
+            if (e.key === "Enter" && !btn.disabled) {
+                send();
+            }
+        });
+
+        async function send() {
+            let seq = input.value.toUpperCase().trim();
+
+            let output = document.getElementById("output");
+            let spinner = document.getElementById("spinner");
+            let viewerDiv = document.getElementById("viewer");
+
+            output.innerHTML = "";
+            viewerDiv.innerHTML = "";
+            document.getElementById("infoBox").style.display = "none";
+
+            spinner.style.display = "block";
+            btn.disabled = true;
+
+            try {
+                let res = await fetch("/predict", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({sequence: seq})
+                });
+
+                let data = await res.json();
+
+                spinner.style.display = "none";
+
+                if (data.error) {
+                    output.innerText = "Error: " + data.error;
+                    return;
+                }
+
+                output.innerHTML =
+                    "<span class='clickable' onclick=\\"showInfo('Sequence length')\\">Sequence length</span>: " + data.length + "\\n" +
+                    "<span class='clickable' onclick=\\"showInfo('Coordinates')\\">Showing first 5 coordinates</span>:\\n\\n" +
+                    JSON.stringify(data.coords.slice(0, 5), null, 2);
+
+                let viewer = $3Dmol.createViewer(viewerDiv, {backgroundColor: "black"});
+
+                let colors = {
+                    "A": "#4ade80",  // groen
+                    "U": "#f87171",  // rood
+                    "G": "#fb923c",  // oranje
+                    "C": "#60a5fa"   // blauw
+                };
+
+                // 🔥 1. NORMALIZE & SCALE
+                let coords = data.coords.map(c => [...c]);
+
+                let maxAbs = Math.max(...coords.flat().map(v => Math.abs(v)));
+                let scale = maxAbs > 0 ? 10 / maxAbs : 1;
+
+                coords = coords.map(c => c.map(v => v * scale));
+
+                // 🔥 2. SMOOTHING (moving average)
+                let smooth = coords.map((c, i) => {
+                    if (i === 0 || i === coords.length - 1) return c;
+
+                    return [
+                        (coords[i-1][0] + c[0] + coords[i+1][0]) / 3,
+                        (coords[i-1][1] + c[1] + coords[i+1][1]) / 3,
+                        (coords[i-1][2] + c[2] + coords[i+1][2]) / 3
+                    ];
+                });
+
+                // 🔥 3. BACKBONE als vloeiende lijn (tube look)
+                viewer.addCurve({
+                    points: smooth.map(c => ({x:c[0], y:c[1], z:c[2]})),
+                    radius: 0.3,
+                    color: "white"
+                });
+
+                // 🔥 4. nucleotides als kleine spheres
+                smooth.forEach((c, i) => {
+                    viewer.addSphere({
+                        center: {x: c[0], y: c[1], z: c[2]},
+                        radius: 0.4,
+                        color: colors[seq[i]] || "white"
+                    });
+                });
+
+                // 🔥 5. labels (minder frequent)
+                smooth.forEach((c, i) => {
+                    if (i % 10 === 0) {
+                        viewer.addLabel(seq[i], {
+                            position: {x: c[0], y: c[1], z: c[2]},
+                            fontSize: 10,
+                            backgroundColor: "black"
+                        });
+                    }
+                });
+
+                viewer.zoomTo();
+                viewer.render();
+
+        } catch (err) {
+            spinner.style.display = "none";
+            output.innerText = "Server error.";
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+        async function showInfo(term) {
+            let res = await fetch("/glossary/" + term);
+            let data = await res.json();
+
+            let box = document.getElementById("infoBox");
+            box.style.display = "block";
+            box.innerHTML = "<b>" + data.term + "</b><br><br>" + data.definition;
+        }
+        </script>
+    </body>
+    </html>
+    """
