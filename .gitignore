@@ -1,6 +1,7 @@
 venv/
 *.csv
 *.pt
+!rna_model_cpu.pt
 *.pdf
 *.docx
 __pycache__/

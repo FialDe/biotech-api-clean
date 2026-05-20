@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 import torch
 from model import RNAModel
+import requests
 
 # 🔹 Model laden
 model = RNAModel()
@@ -87,6 +88,47 @@ def pdb_example():
         "coords": coords,
         "sequence": seq,
         "type": "real"
+    }
+
+@app.get("/pdb/{pdb_id}")
+def get_pdb(pdb_id: str):
+
+    url = f"https://files.rcsb.org/download/{pdb_id.upper()}.pdb"
+
+    res = requests.get(url)
+
+    if res.status_code != 200:
+        return {"error": "PDB not found"}
+
+    pdb_text = res.text
+
+    coords = []
+    seq = []
+
+    for line in pdb_text.splitlines():
+
+        if line.startswith("ATOM"):
+
+            atom_name = line[12:16].strip()
+            resname = line[17:20].strip()
+
+            # 🔥 alleen backbone (simpel houden)
+            if atom_name == "P":
+
+                x = float(line[30:38])
+                y = float(line[38:46])
+                z = float(line[46:54])
+
+                coords.append([x, y, z])
+
+                # simpele mapping
+                base = resname[0]  # A, U, G, C
+                seq.append(base)
+
+    return {
+        "sequence": "".join(seq),
+        "coords": coords,
+        "type": "pdb"
     }
 
 @app.get("/demo", response_class=HTMLResponse)
@@ -357,6 +399,7 @@ def demo():
                 <hr style="margin:10px 0; border-color:#334155;">
 
                 <button class="mini-btn" onclick="loadReal()">🧬 Real RNA</button>
+                <button class="mini-btn" onclick="loadPDB('1EHZ')">🧬 Real PDB</button>
 
                 <hr style="margin:10px 0; border-color:#334155;">
 
@@ -468,7 +511,32 @@ def demo():
                 let seq = data.sequence;
                 let coords = data.coords;
 
-                // hergebruik je bestaande rendering
+                // zet sequence in input (zoals andere knoppen)
+                document.getElementById("seq").value = seq;
+
+                // trigger validatie (zoals andere knoppen)
+                document.getElementById("seq").dispatchEvent(new Event("input"));
+
+                // 🔥 NU: gebruik dezelfde flow als run()
+                renderFromCoords(seq, coords);
+            }
+
+            async function loadPDB(id){
+
+                let res = await fetch("/pdb/" + id);
+                let data = await res.json();
+
+                if(data.error){
+                    alert(data.error);
+                    return;
+                }
+
+                let seq = data.sequence;
+                let coords = data.coords;
+
+                document.getElementById("seq").value = seq;
+                document.getElementById("seq").dispatchEvent(new Event("input"));
+
                 renderFromCoords(seq, coords);
             }
 
@@ -1012,12 +1080,6 @@ def demo():
                      }
                  }
             }       
-
-            window.onload = () => {
-                if(localStorage.getItem("seenOnboarding")){
-                    document.getElementById("onboarding").style.display = "none";                    
-                }
-            };
 
             function startApp(){
                 document.getElementById("onboarding").style.display = "none";
