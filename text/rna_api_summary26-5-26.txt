@@ -1,0 +1,366 @@
+
+RNA APP DEVELOPMENT SUMMARY
+===========================
+
+CURRENT STRATEGIC DIRECTION
+---------------------------
+Main focus shifted from:
+- fake AI-driven 3D → secondary structure guessing
+
+towards:
+- real RNA secondary structure logic
+- modern interactive visualization
+- topology-first architecture
+
+The app direction is now:
+
+sequence
+↓
+ViennaRNA secondary structure prediction
+↓
+dot-bracket notation
+↓
+pair extraction
+↓
+interactive topology viewer
+↓
+3D molecular exploration layer
+
+The 3D viewer remains important,
+but is no longer the primary structure source.
+
+
+MAIN ARCHITECTURE CHANGES
+=========================
+
+1. VIENNARNA INTEGRATION
+------------------------
+
+Installed:
+    pip install ViennaRNA
+
+Added in main.py:
+    import RNA
+
+Inside /predict endpoint:
+
+    fc = RNA.fold_compound(seq)
+    structure, mfe = fc.mfe()
+
+Return JSON now includes:
+
+    "dot_bracket": structure,
+    "mfe": mfe
+
+Example backend output:
+
+{
+  "length": 10,
+  "coords": [...],
+  "dot_bracket": "(((....)))",
+  "mfe": -2.3
+}
+
+
+2. FRONTEND SECONDARY STRUCTURE CHANGES
+---------------------------------------
+
+OLD FLOW:
+coords
+↓
+distance heuristics
+↓
+pair guessing
+
+NEW FLOW:
+ViennaRNA dot-bracket
+↓
+pair extraction
+↓
+topology viewer
+
+Replaced:
+
+    getPairs(seq, coords)
+
+with:
+
+    dotBracketToPairs(dot)
+
+
+3. NEW analysis.js FUNCTIONS
+============================
+
+Added:
+
+----------------------------------------
+dotBracketToPairs(dot)
+----------------------------------------
+
+Converts:
+
+    (((....)))
+
+into:
+
+    [
+      [0,9],
+      [1,8],
+      [2,7]
+    ]
+
+Implementation:
+
+export function dotBracketToPairs(dot){
+
+    let stack = [];
+    let pairs = [];
+
+    for(let i=0;i<dot.length;i++){
+
+        if(dot[i] === "("){
+
+            stack.push(i);
+
+        } else if(dot[i] === ")"){
+
+            let start = stack.pop();
+
+            if(start !== undefined){
+
+                pairs.push([start,i]);
+            }
+        }
+    }
+
+    return pairs;
+}
+
+
+----------------------------------------
+detectStems(pairs)
+----------------------------------------
+
+Groups consecutive pairings into stems.
+
+Example:
+
+[
+ [0,9],
+ [1,8],
+ [2,7]
+]
+
+becomes:
+
+[
+  [
+    [0,9],
+    [1,8],
+    [2,7]
+  ]
+]
+
+
+4. CURRENT STABLE TOPOLOGY RENDERER
+===================================
+
+IMPORTANT:
+The experimental vertical stem renderer was removed.
+
+The app now uses the stable curved topology renderer again.
+
+CURRENT STABLE LAYOUT BLOCK:
+
+for(let i=0;i<seq.length;i++){
+
+    let angle =
+        Math.PI * 0.2 +
+        (i / Math.max(seq.length-1,1))
+        * Math.PI * 1.6;
+
+    let x =
+        centerX +
+        Math.cos(angle) * radius * 1.15;
+
+    let y =
+        centerY +
+        Math.sin(angle) * radius * 0.68;
+
+    // STEM CLUSTERING
+
+    pairs.forEach(pair => {
+
+        let a = pair[0];
+        let b = pair[1];
+
+        if(i === a || i === b){
+
+            let partner =
+                (i === a) ? b : a;
+
+            let partnerAngle =
+                Math.PI * 0.2 +
+                (partner / Math.max(seq.length-1,1))
+                * Math.PI * 1.6;
+
+            x +=
+                Math.cos(partnerAngle) * 18;
+
+            y +=
+                Math.sin(partnerAngle) * 12;
+        }
+    });
+
+    points.push({x,y});
+}
+
+This is currently the safest and most stable renderer.
+
+
+5. IMPORTANT CONCEPTUAL CHANGES
+===============================
+
+DOT-BRACKET NOTATION
+--------------------
+
+Each character represents one nucleotide.
+
+Example:
+
+Sequence:
+    GGGAAAUCCC
+
+Dot-bracket:
+    (((....)))
+
+Meaning:
+
+    ( = paired nucleotide
+    ) = paired nucleotide
+    . = unpaired nucleotide
+
+Pair mapping:
+
+    0 ↔ 9
+    1 ↔ 8
+    2 ↔ 7
+
+
+STEMS
+-----
+
+A stem is:
+- a consecutive region of paired bases
+
+Example:
+
+G ↔ C
+G ↔ C
+G ↔ C
+
+This forms one stem.
+
+
+HAIRPIN
+-------
+
+A hairpin consists of:
+- stem
+- loop
+
+Visual idea:
+
+| |
+| |
+| |
+ \_/
+
+
+CURRENT STATUS
+===============
+
+WORKING:
+--------
+✓ ViennaRNA backend
+✓ dot-bracket generation
+✓ pair extraction
+✓ stem detection
+✓ stable topology renderer
+✓ interactive 3D viewer
+✓ educational/professional modes
+✓ modular architecture
+
+NOT YET PROFESSIONAL:
+---------------------
+✗ true RNA topology geometry
+✗ FORNA-level layout
+✗ real stem rendering
+✗ advanced backbone continuity
+✗ real loop geometry
+
+IMPORTANT:
+-----------
+The renderer is currently:
+- stable
+- interactive
+- biologically improved
+
+but NOT:
+- expert-grade RNA topology software
+
+
+CURRENT PRODUCT POSITION
+========================
+
+The app is evolving from:
+
+"toy AI RNA visualizer"
+
+towards:
+
+"interactive RNA structure exploration platform"
+
+Main commercial value is likely:
+- visualization
+- interaction
+- educational/professional UX
+- modern biotech interface
+
+NOT:
+- claiming superior RNA folding accuracy
+
+
+NEXT LOGICAL STEPS
+==================
+
+SAFE IMPROVEMENTS:
+------------------
+1. Better backbone curves
+2. Stem highlighting
+3. Secondary ↔ 3D synchronization
+4. ViennaRNA metrics display
+5. Improved loop rendering
+6. Topology modes
+
+AVOID FOR NOW:
+--------------
+✗ massive renderer rewrites
+✗ hardcoded stem geometry
+✗ trying to fully clone FORNA
+✗ aggressive fake topology tricks
+
+
+IMPORTANT FINAL INSIGHT
+=======================
+
+The biggest architectural improvement achieved:
+
+OLD:
+3D-first architecture
+
+NEW:
+secondary-structure-first architecture
+
+This aligns much more closely with
+real RNA analysis workflows.

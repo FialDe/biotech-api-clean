@@ -1,0 +1,433 @@
+<html>
+    <head>
+        <title>Biotech AI</title>
+        <link rel="stylesheet" href="/static/style.css">
+        <script src="https://3Dmol.org/build/3Dmol-min.js"></script>
+
+        
+    </head>
+
+    <body>
+
+        <div id="modeBadge" class="mode-badge">
+            PROFESSIONAL MODE
+        </div>
+
+        <div class="topbar">
+
+            <div class="dropdown">
+                <button class="menu-btn">File</button>
+
+                <div class="dropdown-content">
+
+                    <a href="#"
+                        onclick="document.getElementById('fileInput').click(); return false;">
+
+                            📂 Upload RNA
+
+                        </a>
+
+                    <a href="#" onclick="triggerDownload(); return false;">
+                        💾 Export Coordinates
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="menu-btn">Examples</button>
+
+                <div class="dropdown-content">
+                    <a href="#" onclick="loadExample('hairpin')">Hairpin</a>
+                    <a href="#" onclick="loadExample('gc')">High GC</a>
+                    <a href="#" onclick="randomSeq()">Random</a>
+                    <a href="#" onclick="loadReal()">Real RNA</a>
+                    <a href="#" onclick="loadExample('none')">
+                        No structure
+                    </a>
+                    <a href="#" onclick="randomSeq()">
+                        Random
+                    </a>
+                    <a href="#" onclick="loadReal()">
+                        Real RNA
+                    </a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="menu-btn">AI</button>
+
+                <div class="dropdown-content">
+                    <a href="#" onclick="showInfo('about')">AI Insights</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button class="menu-btn">Help</button>
+
+                <div class="dropdown-content">
+                    <a href="#" onclick="openGuide()">❓Guide</a>
+                    <a href="#" onclick="showInfo('about')">About</a>
+                    <a href="#" onclick="showInfo('rna')">What is RNA?</a>
+                </div>
+            </div>
+
+            <div class="dropdown">
+            <button class="menu-btn">Mode</button>
+
+            <div class="dropdown-content">
+                <a href="#" onclick="setMode('educational')">Educational</a>
+                <a href="#" onclick="setMode('professional')">Professional</a>
+            </div>
+        </div>
+
+        </div>
+
+            <div class="container">
+                
+            <h2>🧬 RNA Designer</h2>
+
+            <div style="
+                background: rgba(2,6,23,0.6);
+                padding:10px;
+                border-radius:10px;
+                font-size:12px;
+                color:#94a3b8;
+                margin-bottom:15px;
+            ">
+                <span onclick="showInfo('about')" style="cursor:pointer;">
+                    🧪 AI-assisted RNA Structure Explorer — click for details
+                </span>
+            </div>
+            
+            
+    <div class="workbench">
+
+    <!-- =========================
+    LEFT PANEL
+    ========================== -->
+
+    <div class="left-workbench">
+
+        <div class="panel">
+
+            <div class="panel-title">
+                INPUT SEQUENCE
+            </div>
+
+            <input
+                id="seq"
+                placeholder="Enter RNA sequence..."
+            >
+
+            <div class="toolbar">
+                <button id="runBtn"
+                    class="primary-btn"
+                    onclick="run()"
+                    disabled>
+                    Run Analysis
+                </button>
+            </div>
+
+            <div id="error"
+                class="panel-text"
+                style="color:#f87171;">
+            </div>
+
+            <div id="loading"
+                class="panel-text">
+            </div>
+
+        </div>
+
+        <div class="panel">
+
+            <div class="panel-title">
+                STRUCTURE SUMMARY
+            </div>
+
+            <div id="output"></div>
+
+        </div>
+
+        <div class="panel">
+
+            <div class="panel-title">
+                PREDICTED TOPOLOGY
+            </div>
+
+            <div id="aiPanel"
+                class="ai-panel"
+                style="display:block; margin-top:0;">
+
+                <div class="ai-title">
+                    AI Interpretation
+                </div>
+
+                <div id="aiContent"></div>
+
+            </div>
+
+        </div>
+
+        <div class="panel">
+
+            <div class="panel-title">
+                LEGEND
+            </div>
+
+            <div class="legend">
+
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background:#4ade80"></div>
+                    Adenine (A)
+                </div>
+
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background:#f87171"></div>
+                    Uracil (U)
+                </div>
+
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background:#fb923c"></div>
+                    Guanine (G)
+                </div>
+
+                <div class="legend-item">
+                    <div class="legend-color"
+                        style="background:#60a5fa"></div>
+                    Cytosine (C)
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================
+    CENTER PANEL
+    ========================== -->
+
+    <div class="center-workbench">
+
+        <div class="hero-panel">
+
+            <div class="panel-title">
+                RNA TOPOLOGY VIEW
+            </div>
+
+            <div id="secondaryWrapper">
+
+                <canvas id="secondaryCanvas"></canvas>
+
+                <div id="secondaryPlaceholder"
+                    class="viewer-placeholder">
+
+                    RNA topology visualization<br>
+                    will appear here
+
+                </div>
+
+            </div>
+
+            <div id="structureStatus"
+                style="
+                    margin-top:10px;
+                    padding:10px;
+                    border-radius:10px;
+                    background:rgba(15,23,42,0.5);
+                    border:1px solid #334155;
+                ">
+            </div>
+
+            <div id="biologicalInterpretation"
+                class="panel"
+                style="margin-top:12px;">
+            </div>
+
+            <div id="secondaryInfo"
+                style="
+                    margin-top:10px;
+                ">
+                Hover over a nucleotide
+            </div>
+
+        </div>
+
+        <div class="bottom-panel">
+
+            <div class="panel-title">
+                LINEAR PAIRING VIEW
+            </div>
+
+            <div id="linearWrapper">
+
+                <!-- later -->
+                <canvas id="linearCanvas"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- =========================
+    RIGHT PANEL
+    ========================== -->
+
+    <div class="right-workbench">
+
+        <div class="panel">
+
+            <div class="panel-title">
+                STRUCTURE FEATURES
+            </div>
+
+            <div id="featuresPanel"
+                class="panel-text">
+
+                Awaiting analysis...
+
+            </div>
+
+        </div>
+
+        <div class="panel">
+
+            <div
+                class="panel-title"
+                id="pairingToggle"
+                style="cursor:pointer;"
+            >
+                TECHNICAL DETAILS ▼
+            </div>
+
+            <div
+                id="pairingWrapper"
+                style="display:none;"
+            >
+
+                <div id="pairingPanel"
+                    class="panel-text">
+
+                    No pairings loaded
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+            <div id="infoBox" style="
+                margin-top: 10px;
+                padding: 10px;
+                border-radius: 10px;
+                background: #020617;
+                font-size: 13px;
+                display: none;
+            "></div>
+        </div>
+
+        
+
+        <div id="onboarding" style="
+            position: fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background: rgba(2,6,23,0.95);
+            color:white;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            z-index:999;
+        ">
+
+            <div style="
+                max-width:400px;
+                text-align:center;
+                padding:30px;
+                background:#020617;
+                border-radius:16px;
+                box-shadow:0 20px 60px rgba(0,0,0,0.6);
+            ">
+                <h2>🧬 Welcome</h2>
+
+                <p style="opacity:0.8; font-size:14px;">
+                    This tool helps you understand RNA structure visually.
+                </p>
+
+                <div style="text-align:left; font-size:13px; margin-top:15px; line-height:1.6;">
+                    1️⃣ Enter an RNA sequence<br>
+                    2️⃣ Click <b>Run</b><br>
+                    3️⃣ Click on bases and metrics to learn<br>
+                </div>
+
+                <button onclick="startApp()" style="margin-top:20px;">
+                    Start exploring
+                </button>
+            </div>
+        </div>
+
+        <div id="guideBox" style="display:none;">
+            <div id="guideText"></div>
+            <button onclick="nextStep()" class="primary-btn small-btn" style="margin-top:10px;">Next</button>
+        </div>
+
+        <div id="modal" style="
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background: rgba(0,0,0,0.7);
+            justify-content:center;
+            align-items:center;
+            z-index:2000;
+        ">
+
+            <div style="
+                background:#020617;
+                padding:25px;
+                border-radius:16px;
+                max-width:500px;
+                width:90%;
+                box-shadow:0 20px 60px rgba(0,0,0,0.6);
+                position:relative;
+            ">
+
+                <button onclick="closeModal()" style="
+                    position:absolute;
+                    top:10px;
+                    right:15px;
+                    background:none;
+                    border:none;
+                    color:#94a3b8;
+                    font-size:18px;
+                    cursor:pointer;
+                ">✕</button>
+
+                <div id="modalContent" style="font-size:14px; line-height:1.6;"></div>
+
+            </div>
+        </div>
+    <input
+        type="file"
+        id="fileInput"
+        accept=".txt,.fasta,.fa"
+        onchange="handleFileUpload(event)"
+        hidden
+    >
+
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

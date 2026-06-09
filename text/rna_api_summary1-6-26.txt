@@ -1,0 +1,172 @@
+RNA Workbench Progress Summary
+
+Current State
+
+The application now supports three structure categories:
+
+1.  ViennaRNA Structure Found
+    -   ViennaRNA predicts a stable secondary structure.
+    -   Dot-bracket and MFE are returned from: structure, mfe = fc.mfe()
+    -   Structure source displayed as ViennaRNA.
+    -   MFE shown in UI.
+2.  Educational Fallback Structure
+    -   ViennaRNA returns only dots (no stable structure).
+    -   Local predictor is used.
+    -   Structure source displayed as Educational Predictor.
+    -   No MFE shown.
+3.  No Structure Possible
+    -   ViennaRNA finds nothing.
+    -   Local predictor also finds nothing.
+    -   User receives clear explanation.
+    -   No topology drawn.
+
+Professional vs Educational Mode
+
+Professional Mode: - Uses ViennaRNA only. - If no ViennaRNA structure:
+“Switch to Educational Mode to view a possible educational structure
+prediction.”
+
+Educational Mode: - Uses ViennaRNA when available. - Falls back to local
+predictor when ViennaRNA finds no stable fold.
+
+Status Panels
+
+The original secondaryInfo area caused conflicts.
+
+Solution: - structureStatus -> ViennaRNA / Educational / No Structure
+messages - secondaryInfo -> Hover information only
+
+Result: Status messages no longer disappear during mouse movement.
+
+ViennaRNA Integration
+
+main.py:
+
+    fc = RNA.fold_compound(seq)
+    structure, mfe = fc.mfe()
+
+MFE values come directly from ViennaRNA.
+
+Meaning: - More negative MFE -> generally more stable RNA fold
+
+Examples: -4.20 kcal/mol Moderate stability
+
+-12.80 kcal/mol Stronger GC-rich stability
+
+Debug print statements in main.py can be removed.
+
+Hairpin Debugging
+
+Original issue: - Hairpins reported as 0. - Console: LOOPSIZE = NaN
+
+Cause: detectHairpins() was called with:
+
+    detectHairpins(pairs)
+
+instead of:
+
+    detectHairpins(stems)
+
+Fix:
+
+    let stems = detectStems(pairs);
+
+    let hairpins =
+        detectHairpins(stems);
+
+Result: - Single hairpin structure now reports: Hairpins = 1
+
+detectHairpins()
+
+Current version:
+
+    export function detectHairpins(stems){
+
+        let hairpins = [];
+
+        stems.forEach(stem => {
+
+            if(stem.length < 2)
+                return;
+
+            let innerPair =
+                stem[stem.length - 1];
+
+            let loopSize =
+                innerPair[1] -
+                innerPair[0] - 1;
+
+            if(loopSize >= 3){
+
+                hairpins.push({
+                    start: innerPair[0],
+                    end: innerPair[1],
+                    loopSize,
+                    stemLength: stem.length
+                });
+            }
+        });
+
+        return hairpins;
+    }
+
+Reason: Provides future-ready hairpin objects for: - loop size - stem
+length - multiple hairpins - future tRNA and complex topology work
+
+Important Bug Found
+
+predictSecondaryStructure()
+
+A temporary bug changed:
+
+    if(stem.length >= 2)
+
+to:
+
+    if(stem.length >= 0)
+
+Correct version:
+
+    if(stem.length >= 2)
+
+Topology Viewer Status
+
+Single Hairpin: - Works well. - Keyhole-like topology now visible.
+
+Multiple Hairpins: Example:
+
+    GGGGAAAACCCCGGGGAAAACCCC
+
+Results: - Pairs = 8 - Hairpins = 2 - MFE = -12.80
+
+Analysis is correct.
+
+Renderer still visualizes multiple stems as one distorted structure.
+
+Conclusion: The scientific analysis layer is now ahead of the renderer.
+
+Future Work
+
+Priority 1 - Improve multi-hairpin topology rendering.
+
+Priority 2 - Rename: Hairpin Loop to: Hairpins or Hairpin Count
+
+Priority 3 - Revisit Loop Size terminology.
+
+Current value: seq.length - paired residues
+
+May later become: Unpaired Bases
+
+Priority 4 - Add stability label: High Moderate Low
+
+based on MFE.
+
+Project Status
+
+The scientific pipeline is now functioning:
+
+RNA Sequence -> ViennaRNA -> Dot-Bracket -> Pairs -> Stems -> Hairpins
+-> MFE -> Topology Viewer
+
+The application has evolved from a simple viewer into a genuine RNA
+Workbench with both Professional and Educational workflows.

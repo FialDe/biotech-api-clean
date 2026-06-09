@@ -1,0 +1,313 @@
+
+RNA Structure Explorer – Ontwikkelingssamenvatting
+==================================================
+
+ALGEMENE RICHTING
+-----------------
+Doel:
+Een interactief RNA-visualisatie- en analyseplatform bouwen dat combineert:
+
+- 3D RNA-structuurvisualisatie
+- Secondary structure visualisatie
+- AI-ondersteunde interpretatie
+- Educatieve en professionele workflows
+- Interactieve RNA-verkenning
+
+Belangrijk ontwerpprincipe:
+De applicatie moet wetenschappelijk en gestructureerd blijven.
+Geen feature-chaos en geen algemene “molecule viewer” worden.
+De focus blijft liggen op RNA folding en RNA-structuurinterpretatie.
+
+--------------------------------------------------
+HUIDIGE ARCHITECTUUR
+--------------------------------------------------
+
+De app bestaat nu uit:
+
+LINKERPANEEL
+-------------
+- RNA-sequence input
+- Run-knop
+- Metrics en structure analysis
+- AI Interpretation panel
+- Educatieve RNA Library
+- Exportfunctionaliteit
+- Guide / Help systeem
+
+RECHTERPANEEL
+--------------
+- 3D RNA Viewer
+- Secondary Structure Viewer
+- Secondary Hover Info Panel
+
+Modes:
+- Educational Mode
+- Professional Mode
+
+--------------------------------------------------
+3D VIEWER VERBETERINGEN
+--------------------------------------------------
+
+Geïmplementeerd:
+- 3Dmol.js viewer
+- RNA backbone rendering
+- Gekleurde nucleotide spheres
+- Base pairing cylinders
+- Hairpin highlighting
+- Permanente nucleotide labels
+- Hover-tooltips met coördinaten
+- Hover-highlighting
+- Pointer cursor feedback
+- Placeholder startup-state
+
+Pairing-kleuren:
+- G-C = blauw
+- A-U = groen
+- G-U wobble = oranje
+
+Educational mode:
+- Hovering over pair cylinders toont biologische uitleg
+- Canonical en wobble interacties worden uitgelegd
+
+--------------------------------------------------
+SECONDARY STRUCTURE VIEWER
+--------------------------------------------------
+
+Geïmplementeerd:
+- Canvas-based secondary structure panel
+- RNA weergegeven als lineaire nucleotide-layout
+- Gebogen interaction arcs
+- Pairing color coding
+- Grotere leesbare arcs
+- Grotere nucleotide nodes
+- Verbeterde leesbaarheid
+- Hover-highlighting
+- Pointer interactie
+- Dedicated hover information panel
+
+Huidige visualisatie:
+- Nucleotiden als gekleurde cirkels
+- Arcs representeren predicted pair interactions
+- Arc-hoogte afhankelijk van sequence-afstand
+- Verschillende interactietypes kleurgecodeerd
+
+Huidige beperkingen:
+- Vereenvoudigde topology
+- Nog geen biologisch realistische RNA folding
+- Niet ViennaRNA-achtig
+- Niet energy-based
+- Nog geen echte stem-loop geometrie
+
+Toekomstige richting:
+Geleidelijk evolueren naar realistischere RNA-topology:
+- Betere stem-clustering
+- Realistische loops
+- Betere folding-layouts
+- Meer herkenbare biologische structuren
+
+--------------------------------------------------
+SECONDARY HOVER SYSTEM
+--------------------------------------------------
+
+Geïmplementeerd:
+- Hover-detectie op nucleotiden
+- Dynamisch redraw-systeem
+- Geoptimaliseerde redraw alleen bij hover-verandering
+- Hover glow-effect
+- Hover information panel
+
+Getoonde informatie:
+- Nucleotide identiteit
+- Sequencepositie
+
+Architectuur:
+- secondaryHover global
+- secondaryNodes tracking
+- lastSeq / lastPairs global redraw state
+
+--------------------------------------------------
+AI INTERPRETATION ENGINE
+--------------------------------------------------
+
+Geïmplementeerd:
+Centrale:
+generateAIInsights()
+
+Educational Mode:
+- Leergerichte uitleg
+- GC-content interpretatie
+- Pairing-uitleg
+- Hairpin-uitleg
+- Secondary structure verwijzingen
+
+Professional Mode:
+- Compacte analytische samenvattingen
+- Topology descriptions
+- Interaction density
+- Folding complexity indicators
+
+Belangrijke architectuurbeslissing:
+Één gedeelde AI-engine met:
+- Verschillende presentatie
+- Verschillende toon
+- Verschillend detailniveau
+
+Vermijden:
+- Chatbot-gedrag
+- Lange essays
+- Pseudo-wetenschappelijke hallucinaties
+
+Doel:
+Compacte structure-aware interpretatie.
+
+--------------------------------------------------
+RNA LIBRARY
+--------------------------------------------------
+
+Educatieve RNA-voorbeelden:
+- mRNA
+- tRNA
+- rRNA
+- miRNA
+
+Functionaliteit:
+- Laadt voorbeeldsequence
+- Opent educatieve modal
+- Visualiseert automatisch de structuur
+
+--------------------------------------------------
+UPLOAD & EXPORT
+--------------------------------------------------
+
+Geïmplementeerd:
+- FASTA upload
+- TXT upload
+- Sequence cleaning
+- Automatische validatie
+- Auto-run na upload
+
+Export:
+- Coördinaten-export
+- Downloadbaar coordinate-bestand
+
+--------------------------------------------------
+GUIDE SYSTEM
+--------------------------------------------------
+
+Geïmplementeerd:
+- Interactieve onboarding
+- Stap-voor-stap guide
+- Uitgebreide Guide modal
+- Educatieve walkthrough
+
+Guide bevat:
+- RNA basisuitleg
+- Educational mode
+- Professional mode
+- Interactieve features
+- Hover-functionaliteit
+- Structuuranalyse
+
+--------------------------------------------------
+VISUAL / UX VERBETERINGEN
+--------------------------------------------------
+
+Geïmplementeerd:
+- Viewer placeholders
+- Stabiele startup-layout
+- Geen leeg of kapot startup-scherm
+- Minder scroll-chaos
+- Dedicated workspace-gevoel
+
+Architectuur:
+Viewer stack:
+- 3D Viewer
+- Secondary Structure Viewer
+- Hover Info
+
+Ontwerprichting:
+Professionele biotech/scientific workspace.
+
+--------------------------------------------------
+BELANGRIJKE ARCHITECTUURBESLISSINGEN
+--------------------------------------------------
+
+1. Geen “Mol* clone” worden
+Focus blijft RNA-centrisch.
+
+2. Educational en Professional mode gescheiden houden
+Maar:
+ÉÉN engine
+Verschillende presentatielagen.
+
+3. Feature-chaos vermijden
+Stap voor stap bouwen.
+
+4. Secondary structure moet evolueren richting realistische RNA-topology
+Maar niet te vroeg.
+
+5. AI moet ondersteunend blijven
+Niet dominant.
+
+--------------------------------------------------
+BEKENDE TECHNISCHE PUNTEN
+--------------------------------------------------
+
+1. Dubbele window.onload blokken
+Moeten later samengevoegd worden.
+
+2. renderFromCoords() bevat nog oude AI-logica
+Moet later generateAIInsights() hergebruiken.
+
+3. Secondary structure is momenteel vereenvoudigd
+Later verbeteren richting biologische realisme.
+
+--------------------------------------------------
+VOLGENDE LOGISCHE STAPPEN
+--------------------------------------------------
+
+Mogelijke vervolgstappen:
+
+1. Betere secondary structure topology
+- Stem-clustering
+- Loop-visualisatie
+- Meer realistische layouts
+
+2. Viewer-synchronisatie
+- Secondary hover ↔ 3D highlight sync
+
+3. Uitgebreidere pair interaction info
+- Pair partner display
+- Stem-detectie
+
+4. Betere professionele analytics
+- Folding density metrics
+- Interaction statistics
+
+5. Mobiel/tablet optimalisatie
+- Responsive scientific workspace
+
+6. Meer wetenschappelijke realisme
+- Betere RNA geometrie
+- Betere folding heuristics
+
+--------------------------------------------------
+ALGEMENE STATUS
+--------------------------------------------------
+
+De app is geëvolueerd van:
+een simpele RNA-demo
+
+naar:
+een echte RNA-visualisatie- en interpretatie-workspace.
+
+Belangrijke vooruitgang:
+- coherente architectuur
+- educatieve workflow
+- professionele workflow
+- interactieve structure exploration
+- schaalbaar visualisatiesysteem
+- AI-ondersteunde RNA-interpretatie
+
+De huidige richting blijft:
+gecontroleerde groei met wetenschappelijke focus.

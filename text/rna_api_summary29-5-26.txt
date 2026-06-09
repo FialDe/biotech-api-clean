@@ -1,0 +1,324 @@
+RNA Workbench – Session Summary
+
+Date: Current topology redesign session
+
+========================================
+MAIN CONCLUSION
+========================================
+
+The current application layout is now largely acceptable.
+The biggest weakness is no longer the UI, but the RNA topology rendering itself.
+
+Current status:
+
+- Workbench layout is functional
+- Right sidebar is functional
+- Mode switching works again
+- Linear View works
+- Topology View works technically
+- RNA rendering is not yet biologically convincing
+
+Key insight:
+
+The app currently visualizes RNA data, but does not yet visualize RNA structure in a way that immediately looks biologically meaningful.
+
+========================================
+MODE SWITCH BUG
+========================================
+
+Problem:
+Mode switching stopped working.
+
+Cause:
+setMode() still referenced:
+
+    document.getElementById("eduLibrary")
+
+The eduLibrary element no longer exists in index.html.
+
+Fix:
+Comment out/remove:
+
+    document.getElementById("eduLibrary").style.display = "block";
+    document.getElementById("eduLibrary").style.display = "none";
+
+Result:
+Mode switching works again.
+
+========================================
+RNA LIBRARY
+========================================
+
+The RNA library functionality still exists.
+
+Functions such as:
+
+- mRNA
+- tRNA
+- rRNA
+- miRNA
+
+are still available in code.
+
+Decision:
+Later move the RNA Library to the top bar instead of the old sidebar.
+
+Potential future menu:
+
+Library
+ ├─ mRNA
+ ├─ tRNA
+ ├─ rRNA
+ ├─ miRNA
+ ├─ siRNA
+ ├─ lncRNA
+ └─ circRNA
+
+========================================
+TOPOLOGY ENGINE ANALYSIS
+========================================
+
+We investigated why the topology view still feels artificial.
+
+Current approach:
+
+Sequence
+→ pairs
+→ place nucleotides on curved oval
+→ draw pairing lines
+
+Result:
+
+- visually clean
+- educational
+- not biologically convincing
+
+Main issue:
+
+Everything is still based on:
+
+    cos()
+    sin()
+
+placement on an oval.
+
+========================================
+FORNA COMPARISON
+========================================
+
+FORNA does not simply place bases on a curve.
+
+Instead it thinks in:
+
+- stems
+- loops
+- hairpins
+- bulges
+- junctions
+
+and then generates a layout.
+
+Important realization:
+
+We should stop thinking in individual nucleotides and start thinking in RNA building blocks.
+
+========================================
+STEM DETECTION
+========================================
+
+The detectStems() function was reviewed.
+
+Function:
+
+export function detectStems(pairs){
+
+    if(!pairs.length) return [];
+
+    pairs.sort((a,b)=>a[0]-b[0]);
+
+    let stems = [];
+    let current = [pairs[0]];
+
+    for(let i=1;i<pairs.length;i++){
+
+        let prev = pairs[i-1];
+        let curr = pairs[i];
+
+        if(
+            curr[0] === prev[0] + 1 &&
+            curr[1] === prev[1] - 1
+        ){
+            current.push(curr);
+        }
+        else{
+            stems.push(current);
+            current = [curr];
+        }
+    }
+
+    stems.push(current);
+
+    return stems;
+}
+
+Conclusion:
+
+The grouping of consecutive base pairs into stems works correctly.
+
+========================================
+CONSOLE / DEBUGGING LESSON
+========================================
+
+Learned how to use:
+
+F12
+→ Console
+
+Example:
+
+    console.log(stems);
+
+This is useful for inspecting:
+
+- pairs
+- stems
+- hairpins
+- points
+
+Important learning moment for future debugging.
+
+========================================
+TEST SEQUENCE
+========================================
+
+Main test sequence:
+
+    GGGCGGCGCCG
+
+Console output showed:
+
+    [1,9]
+    [2,8]
+    [3,7]
+
+Meaning:
+
+Stem:
+    1 ↔ 9
+    2 ↔ 8
+    3 ↔ 7
+
+Loop:
+    4,5,6
+
+========================================
+FIRST HAIRPIN EXPERIMENT
+========================================
+
+Created:
+
+    buildHairpinLayout()
+
+Initial implementation only assigned coordinates to paired bases.
+
+Result:
+
+Some nucleotides received positions.
+Others did not.
+
+Likely cause of viewer failure for GC-rich test sequence.
+
+Important conclusion:
+
+The sequence itself is not the problem.
+
+The new topology experiment is being activated and is not yet complete.
+
+========================================
+NEW DESIGN DIRECTION
+========================================
+
+Three candidate layouts were discussed.
+
+Variant 1:
+
+Straight stem
+
+Variant 2:
+
+Hairpin / keyhole shape
+
+Variant 3:
+
+Circular loop shape
+
+Final decision:
+
+Variant 2.
+
+Target topology:
+
+       G C G
+      /     \
+     G       C
+     G       C
+     G       C
+
+Concept:
+
+- Left stem
+- Right stem
+- Loop at the top
+- Backbone connecting everything
+
+This became the chosen direction for Topology Engine v2.
+
+========================================
+LONG-TERM PRODUCT DIRECTION
+========================================
+
+The application should evolve into:
+
+RNA Workbench
+
+Not just:
+
+"Here is your RNA."
+
+But:
+
+"This is what your RNA structure means."
+
+Potential future features:
+
+1. Improved topology engine
+2. Structure interpreter
+3. RNA Library
+4. Compare Mode
+5. Mutation sandbox
+6. Educational molecular exploration
+
+========================================
+NEXT SESSION PLAN
+========================================
+
+Priority #1:
+
+Build Topology Engine v2.
+
+Goals:
+
+- Real stem layout
+- Real loop placement
+- Keyhole hairpin geometry
+- Biologically recognizable RNA structures
+
+Only after this:
+
+- further UI polish
+- extra features
+- advanced interpretation
+
+Core objective:
+
+Make RNA look like RNA.
