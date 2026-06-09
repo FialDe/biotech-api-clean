@@ -4,3 +4,4 @@ torch
 numpy
 jinja2
 python-multipart
+ViennaRNA
